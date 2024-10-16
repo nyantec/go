@@ -33,6 +33,7 @@ var attributeTypeNames = map[string]string{
 	"2.5.4.8":  "ST",
 	"2.5.4.9":  "STREET",
 	"2.5.4.17": "POSTALCODE",
+	"0.9.2342.19200300.100.1.1": "UID",
 }
 
 // String returns a string representation of the sequence r,
@@ -125,6 +126,7 @@ type Name struct {
 	Locality, Province                        []string
 	StreetAddress, PostalCode                 []string
 	SerialNumber, CommonName                  string
+	Uid                                       []string
 
 	// Names contains all parsed attributes. When parsing distinguished names,
 	// this can be used to extract non-standard attributes that are not parsed
@@ -177,6 +179,12 @@ func (n *Name) FillFromRDNSequence(rdns *RDNSequence) {
 					n.PostalCode = append(n.PostalCode, value)
 				}
 			}
+			if len(t) == 7 && t[0] == 0 && t[1] == 9 && t[2] == 2342 && t[3] == 19200300 && t[4] == 100 && t[5] == 1 {
+				switch t[6] {
+				case 1:
+					n.Uid = append(n.Uid, value)
+				}
+			}
 		}
 	}
 }
@@ -191,6 +199,7 @@ var (
 	oidProvince           = []int{2, 5, 4, 8}
 	oidStreetAddress      = []int{2, 5, 4, 9}
 	oidPostalCode         = []int{2, 5, 4, 17}
+	oidUid                = []int{0, 9, 2342, 19200300, 100, 1, 1}
 )
 
 // appendRDNs appends a relativeDistinguishedNameSET to the given RDNSequence
@@ -231,6 +240,7 @@ func (n Name) ToRDNSequence() (ret RDNSequence) {
 	ret = n.appendRDNs(ret, n.PostalCode, oidPostalCode)
 	ret = n.appendRDNs(ret, n.Organization, oidOrganization)
 	ret = n.appendRDNs(ret, n.OrganizationalUnit, oidOrganizationalUnit)
+	ret = n.appendRDNs(ret, n.Uid, oidUid)
 	if len(n.CommonName) > 0 {
 		ret = n.appendRDNs(ret, []string{n.CommonName}, oidCommonName)
 	}
@@ -256,6 +266,13 @@ func (n Name) String() string {
 			if len(t) == 4 && t[0] == 2 && t[1] == 5 && t[2] == 4 {
 				switch t[3] {
 				case 3, 5, 6, 7, 8, 9, 10, 11, 17:
+					// These attributes were already parsed into named fields.
+					continue
+				}
+			}
+			if len(t) == 7 && t[0] == 0 && t[1] == 9 && t[2] == 2342 && t[3] == 19200300 && t[4] == 100 && t[5] == 1 {
+				switch t[6] {
+				case 1:
 					// These attributes were already parsed into named fields.
 					continue
 				}
